@@ -1,2 +1,4 @@
-# INTERVIEW-VIDEO-ANALYZING-PLATFORM
-This project is an automated interview video analysis platform built using Streamlit, OpenCV, MediaPipe, and Transformers. It analyzes uploaded video files to:   1. Extract audio and perform speech-to-text conversion. 2. Conduct sentiment analysis on the extracted text. 3. Detect eye gaze and potential cheating.
+This project utilizes MediaPipe and OpenCV to analyze webcam video in real-time, detecting:
+1. Eye Gaze: Determines if the person is looking away from the screen.
+2. Mannersisms: Identifies facial expressions (smiling, neutral).
+3. Sentiment Analysis: Infers sentiment based on facial expressions (positive, neutral).
