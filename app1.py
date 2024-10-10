@@ -1,17 +1,13 @@
-
-
 import streamlit as st
 import cv2
 import mediapipe as mp
 import numpy as np
 import time
-import threading
 import csv
-import json
 
 # Initialize face mesh
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.3)
+face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.5, static_image_mode=False)
 
 # Create Streamlit app
 st.title("Webcam Analysis")
@@ -23,6 +19,10 @@ FRAME_WINDOW = st.image([])
 # Initialize webcam
 cap = cv2.VideoCapture(0)
 
+# Set webcam resolution
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
 # Check if webcam is opened
 if not cap.isOpened():
     st.error("Webcam not detected. Ensure it's properly connected and configured.")
@@ -33,12 +33,22 @@ eye_gaze_data = []
 mannersism_data = []
 start_time = time.time()
 
+def visualize_landmarks(frame, face_landmarks):
+    # Visualize all facial landmarks on the frame
+    for landmark in face_landmarks.landmark:
+        x = int(landmark.x * frame.shape[1])
+        y = int(landmark.y * frame.shape[0])
+        cv2.circle(frame, (x, y), 1, (0, 255, 0), -1)
+
 def analyze_eye_gaze(frame):
     # Eye gaze analysis
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    small_frame = cv2.resize(frame, (640, 480))  # Resize frame for better performance
+    rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
     result = face_mesh.process(rgb_frame)
+
     if result.multi_face_landmarks:
         for face_landmarks in result.multi_face_landmarks:
+            visualize_landmarks(frame, face_landmarks)  # Visualize landmarks
             try:
                 # Calculate eye centers
                 left_eye_center = np.array([face_landmarks.landmark[474].x, face_landmarks.landmark[474].y])
@@ -66,13 +76,15 @@ def analyze_mannersisms(frame):
     # Analyze facial expressions
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml').detectMultiScale(gray, 1.1, 4)
+
     for (x, y, w, h) in faces:
-        roi = gray[y:y+h, x:x+w]
+        roi = gray[y: y + h, x: x + w]
         if roi.size == 0:
             continue
 
         # Detect smile
         smile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml').detectMultiScale(roi, 1.8, 20)
+
         if len(smile) > 0:
             st.markdown("*Mannersism Detected:* Smiling")
             st.markdown("*Sentiment:* Positive")
@@ -86,6 +98,7 @@ def main():
     global eye_gaze_data, mannersism_data, start_time
     while run:
         ret, frame = cap.read()
+
         if not ret:
             st.error("Failed to read frame from webcam.")
             break
@@ -105,13 +118,14 @@ def main():
     cap.release()
 
     # Calculate averages and percentages
-    eye_gaze_percentage = (eye_gaze_data.count(1) / len(eye_gaze_data)) * 100 if eye_gaze_data else 0
-    mannersism_smiling_percentage = (mannersism_data.count("Smiling") / len(mannersism_data)) * 100 if mannersism_data else 0
-
+    eye_gaze_percentage = (eye_gaze_data.count(1) / len(
+        [x for x in eye_gaze_data if x is not None])) * 100 if eye_gaze_data else 0
+    mannersism_smiling_percentage = (mannersism_data.count("Smiling") / len(
+        mannersism_data)) * 100 if mannersism_data else 0
     analysis_time = time.time() - start_time
     total_frames_analyzed = len(eye_gaze_data)
-    average_eye_gaze_per_frame = sum(1 for x in eye_gaze_data if x == 1) / len(
-        eye_gaze_data) * 100 if eye_gaze_data else 0
+    average_eye_gaze_per_frame = (sum(1 for x in eye_gaze_data if x == 1) / len(
+        [x for x in eye_gaze_data if x is not None])) * 100 if eye_gaze_data else 0
 
     # Display results
     st.header("Analysis Results")
@@ -119,7 +133,6 @@ def main():
     st.write("Eye Gaze Percentage: {:.2f}%".format(eye_gaze_percentage))
     st.write("Average Eye Gaze Per Frame: {:.2f}%".format(average_eye_gaze_per_frame))
     st.write("Total Frames Analyzed: {}".format(total_frames_analyzed))
-
     st.subheader("Mannersism Analysis")
     st.write("Smiling Percentage: {:.2f}%".format(mannersism_smiling_percentage))
     st.write("Analysis Time: {:.2f} seconds".format(analysis_time))
@@ -139,6 +152,12 @@ def main():
         st.download_button(label="Download Analysis Report", data=csvfile.read(), file_name="analysis_data.csv",
                            mime="text/csv")
 
+    # Display raw data
+    if st.button("View Raw Data"):
+        st.subheader("Eye Gaze Data")
+        st.write(eye_gaze_data)
+        st.subheader("Mannersism Data")
+        st.write(mannersism_data)
 
 if __name__ == "__main__":
     main()
