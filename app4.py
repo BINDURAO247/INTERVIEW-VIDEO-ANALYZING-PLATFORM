@@ -128,23 +128,29 @@ def main():
     # Check if any data has been appended
     if len(st.session_state.eye_gaze_data) > 0 and len(st.session_state.mannersism_data) > 0:
         # Calculate averages and percentages
+        valid_eye_gaze_frames = [x for x in st.session_state.eye_gaze_data if x is not None]
         eye_gaze_percentage = (st.session_state.eye_gaze_data.count(1) / len(
-            [x for x in st.session_state.eye_gaze_data if
-             x is not None])) * 100 if st.session_state.eye_gaze_data else 0
+            valid_eye_gaze_frames)) * 100 if valid_eye_gaze_frames else 0
         mannersism_smiling_percentage = (st.session_state.mannersism_data.count("Smiling") / len(
             st.session_state.mannersism_data)) * 100 if st.session_state.mannersism_data else 0
         analysis_time = time.time() - st.session_state.start_time
         total_frames_analyzed = len(st.session_state.eye_gaze_data)
 
+        # Average eye gaze per frame
+        eye_gaze_average_per_frame = sum(valid_eye_gaze_frames) / len(
+            valid_eye_gaze_frames) if valid_eye_gaze_frames else 0
+
         # Debugging final analysis
         debug_print("eye_gaze_percentage", eye_gaze_percentage)
         debug_print("mannersism_smiling_percentage", mannersism_smiling_percentage)
+        debug_print("eye_gaze_average_per_frame", eye_gaze_average_per_frame)
         debug_print("total_frames_analyzed", total_frames_analyzed)
 
         # Display results
         st.header("Analysis Results")
         st.subheader("Eye Gaze Analysis")
         st.write("Eye Gaze Percentage: {:.2f}%".format(eye_gaze_percentage))
+        st.write("Average Eye Gaze per Frame: {:.2f}".format(eye_gaze_average_per_frame))
         st.write("Total Frames Analyzed: {}".format(total_frames_analyzed))
         st.subheader("Mannersism Analysis")
         st.write("Smiling Percentage: {:.2f}%".format(mannersism_smiling_percentage))
@@ -155,6 +161,7 @@ def main():
             writer = csv.writer(csvfile)
             writer.writerow(["Metric", "Value"])
             writer.writerow(["Eye Gaze Percentage", eye_gaze_percentage])
+            writer.writerow(["Average Eye Gaze per Frame", eye_gaze_average_per_frame])
             writer.writerow(["Total Frames Analyzed", total_frames_analyzed])
             writer.writerow(["Smiling Percentage", mannersism_smiling_percentage])
             writer.writerow(["Analysis Time", analysis_time])
