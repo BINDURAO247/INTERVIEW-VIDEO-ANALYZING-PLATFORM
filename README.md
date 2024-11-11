@@ -4,4 +4,6 @@ The Interview Video Analyzing Platform is a web-based application built with Str
 
 
 2.Mannerism Analysis - Detects facial expressions such as smiling, helping assess the candidate's emotional state and engagement during the interview.
+
+
 This project leverages computer vision techniques using libraries like OpenCV, MediaPipe, and Streamlit to create an interactive experience for video analysis in real-time.
